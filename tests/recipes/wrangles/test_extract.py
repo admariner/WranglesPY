@@ -1,4 +1,5 @@
 import logging
+import re
 import pytest
 import wrangles
 import pandas as pd
@@ -3666,23 +3667,23 @@ class TestExtractAI:
 
     def test_ai(self):
         """
-        Test openai extract with a single input and output
+        Extract each row's dimension without changing its value or unit.
         """
         df = wrangles.recipe.run(
             """
             wrangles:
             - extract.ai:
-                model: gpt-4o-mini
                 api_key: ${OPENAI_API_KEY}
-                seed: 1
                 timeout: 60
                 retries: 2
                 output:
                   length:
                     type: string
                     description: >-
-                      Any lengths found in the data
-                      such as cm, m, ft, etc.
+                      Extract the dimension as its number and unit, including
+                      nominal tool sizes such as wrench or screwdriver sizes.
+                      Return only that number and unit from the source text;
+                      do not convert units or include the item name.
             """,
             dataframe=pd.DataFrame({
                 "data": [
@@ -3692,14 +3693,14 @@ class TestExtractAI:
                 ],
             })
         )
-        # This is temperamental
-        # Score as 2/3 as good enough for test to pass
-        matches = sum([
-            df['length'][0] == '25mm',
-            df['length'][1] == '6m',
-            df['length'][2] == '3mm'
-        ])
-        assert matches >= 2
+        actual = df['length'].tolist()
+        # Spacing between a number and its unit does not change the dimension.
+        normalized = [
+            re.sub(r"(?<=\d)\s+(?=[A-Za-z]+$)", "", value.strip())
+            if isinstance(value, str) else value
+            for value in actual
+        ]
+        assert normalized == ['25mm', '6m', '3mm'], f"Unexpected extracted dimensions: {actual!r}"
 
     def test_ai_only_description(self):
         """
@@ -3709,9 +3710,7 @@ class TestExtractAI:
             """
             wrangles:
             - extract.ai:
-                model: gpt-4o-mini
                 api_key: ${OPENAI_API_KEY}
-                seed: 1
                 timeout: 60
                 retries: 2
                 output:
@@ -3744,9 +3743,7 @@ class TestExtractAI:
             """
             wrangles:
             - extract.ai:
-                model: gpt-4o-mini
                 api_key: ${OPENAI_API_KEY}
-                seed: 1
                 timeout: 60
                 retries: 2
                 output:
@@ -3779,10 +3776,7 @@ class TestExtractAI:
             """
             wrangles:
             - extract.ai:
-                model: gpt-4o-mini
                 api_key: ${OPENAI_API_KEY}
-                seed: 1
-                temperature: 0.2
                 timeout: 60
                 retries: 2
                 output:
@@ -3814,9 +3808,7 @@ class TestExtractAI:
             """
             wrangles:
             - extract.ai:
-                model: gpt-4o-mini
                 api_key: ${OPENAI_API_KEY}
-                seed: 1
                 timeout: 60
                 retries: 2
                 output: length (mm)
@@ -3846,9 +3838,7 @@ class TestExtractAI:
             """
             wrangles:
             - extract.ai:
-                model: gpt-4o-mini
                 api_key: ${OPENAI_API_KEY}
-                seed: 1
                 timeout: 60
                 retries: 2
                 output:
@@ -3891,9 +3881,7 @@ class TestExtractAI:
             """
             wrangles:
             - extract.ai:
-                model: gpt-4o-mini
                 api_key: ${OPENAI_API_KEY}
-                seed: 1
                 timeout: 60
                 retries: 2
                 output:
@@ -3934,9 +3922,7 @@ class TestExtractAI:
             """
             wrangles:
             - extract.ai:
-                model: gpt-4o-mini
                 api_key: ${OPENAI_API_KEY}
-                seed: 1
                 timeout: 60
                 retries: 2
                 output:
@@ -3972,7 +3958,6 @@ class TestExtractAI:
             - extract.ai:
                 api_key: ${OPENAI_API_KEY}
                 cache: false
-                seed: 1
                 timeout: 0.1
                 retries: 0
                 output:
@@ -4004,10 +3989,8 @@ class TestExtractAI:
             """
             wrangles:
             - extract.ai:
-                model: gpt-4o-mini
                 api_key: ${OPENAI_API_KEY}
                 cache: false
-                seed: 1
                 timeout: 0.1
                 retries: 0
                 output:
@@ -4047,9 +4030,7 @@ class TestExtractAI:
             """
             wrangles:
             - extract.ai:
-                model: gpt-4o-mini
                 api_key: ${OPENAI_API_KEY}
-                seed: 1
                 timeout: 60
                 retries: 2
                 output:
@@ -4087,10 +4068,7 @@ class TestExtractAI:
             """
             wrangles:
             - extract.ai:
-                model: gpt-4o-mini
                 api_key: ${OPENAI_API_KEY}
-                seed: 2
-                temperature: 0.2
                 timeout: 60
                 retries: 2
                 output:
@@ -4118,9 +4096,7 @@ class TestExtractAI:
             """
             wrangles:
             - extract.ai:
-                model: gpt-4o-mini
                 api_key: ${OPENAI_API_KEY}
-                seed: 1
                 timeout: 60
                 retries: 2
                 output:
@@ -4148,7 +4124,6 @@ class TestExtractAI:
                 wrangles:
                   - extract.ai:
                       api_key: ${OPENAI_API_KEY}
-                      seed: 1
                       timeout: 60
                       retries: 2
                       output:
@@ -4176,7 +4151,6 @@ class TestExtractAI:
                 wrangles:
                   - extract.ai:
                       api_key: abc123
-                      seed: 1
                       timeout: 60
                       retries: 2
                       output:
@@ -4202,7 +4176,6 @@ class TestExtractAI:
               - extract.ai:
                   input: data
                   api_key: ${OPENAI_API_KEY}
-                  seed: 1
                   timeout: 60
                   retries: 2
                   output:
@@ -4231,9 +4204,7 @@ class TestExtractAI:
             """
             wrangles:
             - extract.ai:
-                model: gpt-4o
                 api_key: ${OPENAI_API_KEY}
-                seed: 1
                 timeout: 60
                 retries: 2
                 output:
@@ -4269,9 +4240,7 @@ class TestExtractAI:
             """
             wrangles:
             - extract.ai:
-                model: gpt-4o
                 api_key: ${OPENAI_API_KEY}
-                seed: 1
                 timeout: 60
                 retries: 2
                 output:
@@ -4297,7 +4266,6 @@ class TestExtractAI:
             - extract.ai:
                 model: o3-mini
                 api_key: ${OPENAI_API_KEY}
-                seed: 1
                 timeout: 60
                 retries: 2
                 output:
@@ -4370,7 +4338,6 @@ class TestExtractAI:
                 - extract.ai:
                     model: gpt-4o-mini
                     api_key: ${OPENAI_API_KEY}
-                    seed: 1
                     timeout: 60
                     retries: 2
                     reasoning:
@@ -4461,7 +4428,6 @@ class TestExtractAI:
             - extract.ai:
                 model_id: 0e81f1ad-c0a3-42b4
                 api_key: ${OPENAI_API_KEY}
-                seed: 1
                 temperature: 0.2
                 retries: 2
             """,
@@ -4489,7 +4455,6 @@ class TestExtractAI:
             - extract.ai:
                 model_id: d7c8270d-f15a-4c9c
                 api_key: ${OPENAI_API_KEY}
-                seed: 1
                 retries: 2
             """,
             dataframe=pd.DataFrame({
@@ -4511,7 +4476,6 @@ class TestExtractAI:
             - extract.ai:
                 model_id: 0e81f1ad-c0a3-42b4
                 api_key: ${OPENAI_API_KEY}
-                seed: 1
                 retries: 2
                 output: result
             """,
@@ -4540,7 +4504,6 @@ class TestExtractAI:
             - extract.ai:
                 model_id: 0e81f1ad-c0a3-42b4
                 api_key: ${OPENAI_API_KEY}
-                seed: 1
                 retries: 2
                 output:
                   - Colors
@@ -4571,7 +4534,6 @@ class TestExtractAI:
             - extract.ai:
                 model_id: c3e6715a-6214-4517
                 api_key: ${OPENAI_API_KEY}
-                seed: 1
                 retries: 2
             """,
             dataframe=pd.DataFrame({
@@ -4594,7 +4556,6 @@ class TestExtractAI:
             - extract.ai:
                 model_id: d168c456-514f-4513
                 api_key: ${OPENAI_API_KEY}
-                seed: 1
                 retries: 2
             """,
             dataframe=pd.DataFrame({
@@ -4613,9 +4574,7 @@ class TestExtractAI:
             """
             wrangles:
             - extract.ai:
-                model: gpt-4o
                 api_key: ${OPENAI_API_KEY}
-                seed: 1
                 timeout: 60
                 retries: 2
                 strict: true
@@ -4651,7 +4610,6 @@ class TestExtractAI:
                 wrangles:
                 - extract.ai:
                     input: Product
-                    model: gpt-4o-mini
                     api_key: dummy
                     output:
                       Size (Diameter):
